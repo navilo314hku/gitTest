@@ -181,6 +181,7 @@ void printdiffsArr(double diffs[]){
 void *thr_func(void *arg) {//what do we want to pass in
 
    int thr_index=*(int*)arg;//store the current thread index
+   //free(arg);
    printf("DB: receive index %d\n",thr_index);
    //e.g thr_index=0
    int start_row,end_row;
@@ -191,8 +192,8 @@ void *thr_func(void *arg) {//what do we want to pass in
       end_row=start_row+step;}
    //else(it is the last thread, set end_row as the last row)
    else {end_row=M-1;}
-   printf("start row of T%d: %d\n",thr_index,start_row);
-   printf("start row of T%d: %d\n",thr_index,end_row);
+   //printf("start row of T%d: %d\n",thr_index,start_row);
+  // printf("end row of T%d: %d\n",thr_index,end_row);
 
 
 // (2) Add the worker's logic here
@@ -223,7 +224,12 @@ int find_steady_state (void)//main thread
    double maxDiff;//to store the max diff among all the diffs returned by threads 
    //create threads
    for (int i=0;i<thr_count;i++){
-      if(pthread_create(&threads[i],NULL,&thr_func,&i)!=0){
+      /*i is changing during this for loop, 
+      and we can't ensure desired i can be passed to the thread function
+      so we need to use memory allocation for passing i to each thread */
+      int *a=malloc(sizeof(int));
+      a=&i;
+      if(pthread_create(&threads[i],NULL,&thr_func,a)!=0){
          return 1;//error in thread creation
       }
       //sleep(1);
