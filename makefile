@@ -1,4 +1,4 @@
-all:  step getRV pointer_arr template
+all:  template
 
 template: jacobi_template.c
 	gcc -pthread -o template jacobi_template.c
