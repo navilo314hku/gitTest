@@ -24,7 +24,8 @@ int main(){
     pthread_t thr;
     pthread_create(&thr,NULL,&thr_func,NULL);
     pthread_join(thr,NULL);
-    printf("Program completed - user: %.4f s, system: %.4f s\n",// user time and system time
+    //find_steady_state - user: 0.1584 s, system: 0.2622 s
+    printf("find_steady_state - user: %.4f s, system: %.4f s\n",// user time and system time
         (usage.ru_utime.tv_sec + usage.ru_utime.tv_usec/1000000.0),
         (usage.ru_stime.tv_sec + usage.ru_stime.tv_usec/1000000.0));
         return 0;

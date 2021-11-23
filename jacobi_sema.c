@@ -260,7 +260,7 @@ void *thr_func(void *arg) {//what do we want to pass in
 
 
 int find_steady_state (void)//main thread 
-{   
+{   struct rusage usage;
     initUserSysTimeArrays();
     //declare array of thread
     sem_init(&semaphore,0,1);//used as a binary sema
@@ -301,14 +301,18 @@ int find_steady_state (void)//main thread
         printf("MaxDiff: %f\n",maxDiff);
         if (maxDiff <= EPSILON){//0.001
         sem_destroy(&semaphore);
-            printf("MaxDiff<0.001,\n breaking iteration loop");
+            printf("MaxDiff<0.001,\n breaking iteration loop\n");
             break;//break its loop
         }
     }
     //return iteration number to main
-    
+    printThreadsStat();
     //Thread 0 has completed - user: 1.2722 s, system: 0.0905 s
-    printf("returning its=%d to main\nm",its);
+    printf("returning its=%d to main\n",its);
+    getrusage(RUSAGE_THREAD,&usage);//store the global var usage
+    printf("Program completed - user: %.4f s, system: %.4f s\n",// user time and system time
+        (usage.ru_utime.tv_sec + usage.ru_utime.tv_usec/1000000.0),
+        (usage.ru_stime.tv_sec + usage.ru_stime.tv_usec/1000000.0));
     return its;
 
 
