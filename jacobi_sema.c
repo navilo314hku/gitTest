@@ -54,6 +54,7 @@ int main (int argc, char *argv[])
    struct timeval stime, etime;  /* Start and end times */
    struct rusage usage;
    void swap (double ***a, double ***b);
+   void printThreadsStat();
    void initUserSysTimeArrays();
    void printdiffsArr(double *diffs[]);
    void allocate_2d_array (int, int, double ***);
@@ -115,6 +116,16 @@ void initUserSysTimeArrays(){
     }
     return;
 }
+void printThreadsStat(){
+    for (int i=0;i<thr_count;i++){
+        printf("Thread %d has completed - user: %.4f s, system: %.4f s\n",
+        i,TotalUserTimeOfThreads[i],TotalSysTimeOfThreads[i]);
+        //Thread 0 has completed - user: 1.2722 s, system: 0.0905 s
+
+    }
+    return;
+}
+
 void allocate_2d_array (int r, int c, double ***a)
 {
    double *storage;
@@ -295,6 +306,8 @@ int find_steady_state (void)//main thread
         }
     }
     //return iteration number to main
+    
+    //Thread 0 has completed - user: 1.2722 s, system: 0.0905 s
     printf("returning its=%d to main\nm",its);
     return its;
 

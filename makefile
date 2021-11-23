@@ -1,4 +1,4 @@
-all:   getrusage jacobi_sema jacobi_seq 
+all:   getrusage  jacobi_seq 
 
 template: jacobi_template.c
 	gcc -pthread -o template jacobi_template.c
@@ -16,4 +16,3 @@ jacobi_seq: jacobi_seq.c
 	gcc -o jacobi_seq jacobi_seq.c
 getrusage: getrusage.c
 	gcc -o getrusage getrusage.c
-	
