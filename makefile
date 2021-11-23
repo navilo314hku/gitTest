@@ -16,3 +16,4 @@ jacobi_seq: jacobi_seq.c
 	gcc -o jacobi_seq jacobi_seq.c
 getrusage: getrusage.c
 	gcc -o getrusage getrusage.c
+	

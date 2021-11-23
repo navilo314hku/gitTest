@@ -54,6 +54,7 @@ int main (int argc, char *argv[])
    struct timeval stime, etime;  /* Start and end times */
    struct rusage usage;
    void swap (double ***a, double ***b);
+   void initUserSysTimeArrays();
    void printdiffsArr(double *diffs[]);
    void allocate_2d_array (int, int, double ***);
    void initialize_array (double ***);
@@ -106,6 +107,13 @@ int main (int argc, char *argv[])
 /* Allocate two-dimensional array. */
 int getStep(int row, int thr_count){//pass in number of row to find the step
     return (row/thr_count);
+}
+void initUserSysTimeArrays(){
+    for (int i=0;i<thr_count;i++){
+        TotalSysTimeOfThreads[i]=0.0;
+        TotalUserTimeOfThreads[i]=0.0;
+    }
+    return;
 }
 void allocate_2d_array (int r, int c, double ***a)
 {
@@ -190,63 +198,71 @@ void swap (double ***a, double ***b){
 }
 /* Entry function of the worker threads */
 void *thr_func(void *arg) {//what do we want to pass in
+    struct rusage rus;
+    double sysTime, userTime;
+ 
+    int thr_index=*(int*)arg;//store the current thread index
+    free(arg);
+    //printf("DB: This is thread %d\n",thr_index);
+    //e.g thr_index=0
+    int start_row,end_row;
+    //find the start row of current thread based on thread id
+    start_row=step*thr_index;
+    //if this is not the last thread
+    if(thr_index!=thr_count-1){end_row=start_row+step-1;}
+    //else(it is the last thread, set end_row as the last row)
+    else {end_row=M-1;}
+    //printf("start row of T%d: %d\n",thr_index,start_row);
+    // printf("end row of T%d: %d\n",thr_index,end_row);
 
-   int thr_index=*(int*)arg;//store the current thread index
-   free(arg);
-   //printf("DB: This is thread %d\n",thr_index);
-   //e.g thr_index=0
-   int start_row,end_row;
-   //find the start row of current thread based on thread id
-   start_row=step*thr_index;
-   //if this is not the last thread
-   if(thr_index!=thr_count-1){end_row=start_row+step-1;}
-   //else(it is the last thread, set end_row as the last row)
-   else {end_row=M-1;}
-   //printf("start row of T%d: %d\n",thr_index,start_row);
-  // printf("end row of T%d: %d\n",thr_index,end_row);
 
+    // (2) Add the worker's logic here
+    //calculate new temp for once
+    int i,j;
+    double diff=0;
+    double *diffPtr=malloc(sizeof(double));//we need to free this pointer after received in master thread 
+    //printf("DB: start for loop\n");
 
-// (2) Add the worker's logic here
-   //calculate new temp for once
-   int i,j;
-   double diff=0;
-   double *diffPtr=malloc(sizeof(double));//we need to free this pointer after received in master thread 
-   //printf("DB: start for loop\n");
-
-   for ( i=start_row; i <=end_row; i++) {//should be correct 
-         if (i!=0 && i!=M-1){//ensure first and last row will not be modified 
+    for ( i=start_row; i <=end_row; i++) {//should be correct 
+            if (i!=0 && i!=M-1){//ensure first and last row will not be modified 
             for (j = 1; j < N-1; j++) {//should be  correct
-             //  printf("i=%d ,j=%d\n",i,j);//DB
-               w[i][j] = 0.25 * (u[i-1][j] + (u)[i+1][j] + (u)[i][j-1] + (u)[i][j+1]);
-               if (fabs((w)[i][j] - (u)[i][j]) > diff)
-                  diff = fabs((w)[i][j] - (u)[i][j]);
+                //  printf("i=%d ,j=%d\n",i,j);//DB
+                w[i][j] = 0.25 * (u[i-1][j] + (u)[i+1][j] + (u)[i][j-1] + (u)[i][j+1]);
+                if (fabs((w)[i][j] - (u)[i][j]) > diff)
+                    diff = fabs((w)[i][j] - (u)[i][j]);
             }
-         }
+            }
 
-      } 
-   //printf("end of for loop\n");
-   *diffPtr=diff;
-   //getrusage(RUSAGE_THREAD,&(ThreadsUsage[thr_index]));
-   return (void*)diffPtr;
-//((void*)result);
+        } 
+    //printf("end of for loop\n");
+    *diffPtr=diff;
+    getrusage(RUSAGE_THREAD, &rus);//get time information
+    userTime=(double)rus.ru_utime.tv_sec+(double)rus.ru_utime.tv_usec*1e-6;
+    sysTime=(double)rus.ru_stime.tv_sec+(double)rus.ru_stime.tv_usec*1e-6;
+    TotalUserTimeOfThreads[thr_index]+=userTime;
+    TotalSysTimeOfThreads[thr_index]+=sysTime;
+    //getrusage(RUSAGE_THREAD,&(ThreadsUsage[thr_index]));
+    return (void*)diffPtr;
+    //((void*)result);
 
 }
 
 
 int find_steady_state (void)//main thread 
-{
-   //declare array of thread
-   sem_init(&semaphore,0,1);//used as a binary sema
-   pthread_t threads[thr_count];
-   //used to store the return value (diff) from the threads
-   double *diffsPtrArr[thr_count];
-   double *diffPtr;//db
-   //double *p=&(diffs[0]);//point p into the array: diffs
-   double maxDiff;//to store the max diff among all the diffs returned by threads 
-   //create threads
-   int its;
-   //printf("step: %d\n",step);
-   for (its=1;its<=max_its;its++){
+{   
+    initUserSysTimeArrays();
+    //declare array of thread
+    sem_init(&semaphore,0,1);//used as a binary sema
+    pthread_t threads[thr_count];
+    //used to store the return value (diff) from the threads
+    double *diffsPtrArr[thr_count];
+    double *diffPtr;//db
+    //double *p=&(diffs[0]);//point p into the array: diffs
+    double maxDiff;//to store the max diff among all the diffs returned by threads 
+    //create threads
+    int its;
+    //printf("step: %d\n",step);
+    for (its=1;its<=max_its;its++){
         printf("iteration: %d\n",its);
         sem_wait(&semaphore);
         for (int i=0;i<thr_count;i++){
@@ -263,25 +279,25 @@ int find_steady_state (void)//main thread
         sem_post(&semaphore);
         }
 
-      //swap u and w
-      
-      swap(&u,&w);
-     // printf("iteration %d ends\n",its);
-      //printf("printing diffs[]\n");
-     // printdiffsArr(diffsPtrArr);
-      maxDiff=getMaxDiff(diffsPtrArr,thr_count);
-      printf("printing Max diff\n");
-      printf("MaxDiff: %f\n",maxDiff);
-      if (maxDiff <= EPSILON){//0.001
+        //swap u and w
+        
+        swap(&u,&w);
+        // printf("iteration %d ends\n",its);
+        //printf("printing diffs[]\n");
+        // printdiffsArr(diffsPtrArr);
+        maxDiff=getMaxDiff(diffsPtrArr,thr_count);
+        printf("printing Max diff\n");
+        printf("MaxDiff: %f\n",maxDiff);
+        if (maxDiff <= EPSILON){//0.001
         sem_destroy(&semaphore);
-         printf("MaxDiff<0.001,\n breaking iteration loop");
-         break;//break its loop
-      }
-   }
-   //return iteration number to main
-   printf("returning its=%d to main\nm",its);
-   return its;
-   
+            printf("MaxDiff<0.001,\n breaking iteration loop");
+            break;//break its loop
+        }
+    }
+    //return iteration number to main
+    printf("returning its=%d to main\nm",its);
+    return its;
+
 
    
 
