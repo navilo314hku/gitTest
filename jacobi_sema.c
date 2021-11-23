@@ -183,7 +183,7 @@ void printdiffsArr(double *diffsPtrArr[]){//pass the address of (array of double
    printf("\n\n");
 }
 void swap (double ***a, double ***b){
-   printf("swapping\n");
+   //printf("swapping\n");
    double **temp = *a;
    *a = *b;
    *b = temp;
@@ -193,7 +193,7 @@ void *thr_func(void *arg) {//what do we want to pass in
 
    int thr_index=*(int*)arg;//store the current thread index
    free(arg);
-   printf("DB: This is thread %d\n",thr_index);
+   //printf("DB: This is thread %d\n",thr_index);
    //e.g thr_index=0
    int start_row,end_row;
    //find the start row of current thread based on thread id
@@ -202,8 +202,8 @@ void *thr_func(void *arg) {//what do we want to pass in
    if(thr_index!=thr_count-1){end_row=start_row+step-1;}
    //else(it is the last thread, set end_row as the last row)
    else {end_row=M-1;}
-   printf("start row of T%d: %d\n",thr_index,start_row);
-   printf("end row of T%d: %d\n",thr_index,end_row);
+   //printf("start row of T%d: %d\n",thr_index,start_row);
+  // printf("end row of T%d: %d\n",thr_index,end_row);
 
 
 // (2) Add the worker's logic here
@@ -211,7 +211,7 @@ void *thr_func(void *arg) {//what do we want to pass in
    int i,j;
    double diff=0;
    double *diffPtr=malloc(sizeof(double));//we need to free this pointer after received in master thread 
-   printf("DB: start for loop\n");
+   //printf("DB: start for loop\n");
 
    for ( i=start_row; i <=end_row; i++) {//should be correct 
          if (i!=0 && i!=M-1){//ensure first and last row will not be modified 
@@ -224,7 +224,7 @@ void *thr_func(void *arg) {//what do we want to pass in
          }
 
       } 
-   printf("end of for loop\n");
+   //printf("end of for loop\n");
    *diffPtr=diff;
    //getrusage(RUSAGE_THREAD,&(ThreadsUsage[thr_index]));
    return (void*)diffPtr;
@@ -245,7 +245,7 @@ int find_steady_state (void)//main thread
    double maxDiff;//to store the max diff among all the diffs returned by threads 
    //create threads
    int its;
-   printf("step: %d\n",step);
+   //printf("step: %d\n",step);
    for (its=1;its<=max_its;its++){
         printf("iteration: %d\n",its);
         sem_wait(&semaphore);
@@ -266,9 +266,9 @@ int find_steady_state (void)//main thread
       //swap u and w
       
       swap(&u,&w);
-      printf("iteration %d ends\n",its);
-      printf("printing diffs[]\n");
-      printdiffsArr(diffsPtrArr);
+     // printf("iteration %d ends\n",its);
+      //printf("printing diffs[]\n");
+     // printdiffsArr(diffsPtrArr);
       maxDiff=getMaxDiff(diffsPtrArr,thr_count);
       printf("printing Max diff\n");
       printf("MaxDiff: %f\n",maxDiff);

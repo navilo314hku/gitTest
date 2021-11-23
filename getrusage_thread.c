@@ -11,13 +11,12 @@
 #include <string.h>
 #include <pthread.h>
 #include <stdbool.h>
+#include <unistd.h>
 #include <semaphore.h>           /* For timing */
 struct rusage usage;
 
 void *thr_func(void *arg) {//what do we want to pass in
-    for(int i=0;i<100;i++){
-        printf("%d\n",i);
-    }
+    sleep(5);
     getrusage(RUSAGE_THREAD,&usage);//store the global var usage
     return;
 }
