@@ -27,7 +27,7 @@ int N = 200;                     /* Number of cols */
 long max_its = 1000000;          /* Maximum iterations, a safe bound to avoid infinite loop */
 double final_diff;               /* Temperature difference between iterations at the end */
 int step;                        /* how much row each thread need to compute, except the last thread*/
-int thr_count = 6;
+int thr_count = 2;
 
 /* shared variables between threads */
 /*************************************************************/
@@ -40,7 +40,7 @@ double** w;                   /* New temperatures */
 struct rusage ThreadsUsage[16];//To store time information of threads 
 double TotalUserTimeOfThreads[16];//
 double TotalSysTimeOfThreads[16]; 
-
+sem_t semaphore;
 
 
 
@@ -213,7 +213,7 @@ void *thr_func(void *arg) {//what do we want to pass in
    double *diffPtr=malloc(sizeof(double));//we need to free this pointer after received in master thread 
    printf("DB: start for loop\n");
 
-   for ( i=start_row; i <end_row; i++) {//should be correct 
+   for ( i=start_row; i <=end_row; i++) {//should be correct 
          if (i!=0 && i!=M-1){//ensure first and last row will not be modified 
             for (j = 1; j < N-1; j++) {//should be  correct
              //  printf("i=%d ,j=%d\n",i,j);//DB
@@ -236,6 +236,7 @@ void *thr_func(void *arg) {//what do we want to pass in
 int find_steady_state (void)//main thread 
 {
    //declare array of thread
+   sem_init(&semaphore,0,1);//used as a binary sema
    pthread_t threads[thr_count];
    //used to store the return value (diff) from the threads
    double *diffsPtrArr[thr_count];
@@ -245,36 +246,25 @@ int find_steady_state (void)//main thread
    //create threads
    int its;
    printf("step: %d\n",step);
-   for (its=0;its<max_its;its++){
-      printf("iteration: %d\n",its);
-      for (int i=0;i<thr_count;i++){
-
-         /*i is changing during this for loop, 
-         and we can't ensure desired i can be passed to the thread function
-         so we need to use allocate memory for each i 
-         and pass corresponding i to corresponding thread*/
-         int *a=malloc(sizeof(int));
-         *a=i;
-         if(pthread_create(&threads[i],NULL,&thr_func,a)!=0){//tested ok 
-            return 1;//error in thread creation
-         }
-         //if(pthread_join(threads[i],(void**)&(diffsPtr[i]))!=0){
-           // return 2;//DB RMB to remove these 2 lines of code later
-         /*if(pthread_join(threads[i],(void**)&(diffsPtrArr[i]))!=0){
-         return 2;
-         }*/
-         //printf("DB: receive diff=%f from Thread %d\n",*(diffsPtrArr[i]),i); 
-         
-      }
-
-      //wait for all threads complete computation 
-      for(int i=0;i<thr_count;i++){
-         if(pthread_join(threads[i],(void**)&(diffsPtrArr[i]))!=0){
-         return 2;
-         }
-      }
+   for (its=1;its<=max_its;its++){
+        printf("iteration: %d\n",its);
+        sem_wait(&semaphore);
+        for (int i=0;i<thr_count;i++){
+            int *a=malloc(sizeof(int));
+            *a=i;
+            if(pthread_create(&threads[i],NULL,&thr_func,a)!=0){//tested ok 
+                return 1;//error in thread creation
+            }
+        }
+        for(int j=0;j<thr_count;j++){
+            if(pthread_join(threads[j],(void**)&(diffsPtrArr[j]))!=0){
+            return 2;
+            }
+        sem_post(&semaphore);
+        }
 
       //swap u and w
+      
       swap(&u,&w);
       printf("iteration %d ends\n",its);
       printf("printing diffs[]\n");
@@ -283,6 +273,7 @@ int find_steady_state (void)//main thread
       printf("printing Max diff\n");
       printf("MaxDiff: %f\n",maxDiff);
       if (maxDiff <= EPSILON){//0.001
+        sem_destroy(&semaphore);
          printf("MaxDiff<0.001,\n breaking iteration loop");
          break;//break its loop
       }
