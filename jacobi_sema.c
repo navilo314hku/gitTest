@@ -262,7 +262,7 @@ int find_steady_state (void)//main thread
             *a=i;
             if(pthread_create(&threads[i],NULL,&thr_func,a)!=0){//tested ok 
                 return 1;//error in thread creation
-            }
+            }//
         }
         for(int j=0;j<thr_count;j++){
             if(pthread_join(threads[j],(void**)&(diffsPtrArr[j]))!=0){
