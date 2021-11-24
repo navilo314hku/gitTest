@@ -222,7 +222,6 @@ void *thr_func(void *arg) {/* Entry function of the worker threads */
     int i,j;
     double diff=0;
     double *diffPtr=malloc(sizeof(double));//we need to free this pointer after received in master thread 
-    //printf("DB: start for loop\n");
 
     for ( i=start_row; i <=end_row; i++) {//should be correct 
             if (i!=0 && i!=M-1){//ensure first and last row will not be modified 
@@ -257,7 +256,6 @@ int find_steady_state (void)//main thread
     double maxDiff;//to store the max diff among all the diffs returned by threads 
     int its;
     for (its=1;its<=max_its;its++){
-        printf("iteration: %d\n",its);
         sem_wait(&semaphore);
         for (int i=0;i<thr_count;i++){
             int *a=malloc(sizeof(int));
