@@ -1,4 +1,61 @@
+/*At the head of the submitted source code, state the
+• File name
+• Student’s name
+• Student Number
+• Development platform
+• Remark – describe how much you have completed
+*/
+/*
+Documentation
+File name: jacobi_sema.c 
+Student's name: Lo Ngai Chak
+Student's Number: 3035685859
 
+Development platform: 
+Build on MacOs, 
+Test On WorkBench2: linux
+
+Remark
+In this program, I have developed all the 7 functionailities 
+required in the given documentation. 
+
+Program logic description 
+In the master thread(find_steady_state()), for each iteration,
+before thread creation, I first use a semaphore to lock the 
+pthread_create and pthread_join area.
+I use a for loop to generate the the required number of
+thread by pthread_create(). Also in the pthread_create()
+the thread index (0,...,thr_number-1) is passed into the 
+thread for the purpose of distributing rows for threads.
+And then I use another for loop of pthread_join() to wait 
+for all threads complete one cycle of temperature update, 
+also the update difference (diff) of the thread will be return
+from worker thread and be received by pthread_join().
+After all the threads are finished for one cycle, the 
+update differences were stored as an array diffs[], and then 
+the maximum difference will be found from this array: maxDiff.
+By comparing the value of maxDiff and the EPSILON value, the 
+iteration will break and return the num of iteration its to the main()
+ if maxDiff is smaller than or equal to EPSILON.Or else, it will start 
+ another iteration and repeat the above procedure.
+
+In the worker thread function, the thread will calculate one cycle of temperature 
+update. The thread will first receive the 
+thread id from the master thread. And then it will generate  the
+start row and the end row based on the thread index, the calculation
+of start row and end row has already prevent multiple threads will 
+be works on different rows without overlapping. And then the worker will
+update all the blocks in their responsible rows of matrix w, based on the
+ previous matrix u. And the logic of getting the maximum temperature change
+ among the responsible rows is just the same as jacobi_seq.c. After update 
+ all the blocks in the responsible rows, the thread will get the usertime 
+ and the system time of thread, and then add these two numbers to the global
+ arrays TotalUserTime[] and TotalSysTime[] and finally return the value of 
+ maxDiff to the master thread. 
+
+
+
+*/
 #define _GNU_SOURCE
 #define __USE_GNU 
 #include <unistd.h>
